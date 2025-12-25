@@ -80,6 +80,75 @@ func TestCreateDatabaseForeignKeysEnabled(t *testing.T) {
 	}
 }
 
+func TestMigrations(t *testing.T) {
+	var testMigrations = []sad.Migration{
+		{
+			Version: 1,
+			Name:    "create dummy table",
+			SQL: `
+            CREATE TABLE dummy (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            );
+        `,
+		},
+		{
+			Version: 2,
+			Name:    "add age column",
+			SQL: `
+            ALTER TABLE dummy ADD COLUMN age INTEGER DEFAULT 0;
+        `,
+		},
+		{
+			Version: 3,
+			Name:    "insert initial row",
+			SQL: `
+            INSERT INTO dummy (name, age) VALUES ('Alice', 30);
+        `,
+		},
+		{
+			Version: 4,
+			Name:    "create another table",
+			SQL: `
+            CREATE TABLE dummy2 (
+                id INTEGER PRIMARY KEY,
+                dummy_id INTEGER,
+                FOREIGN KEY(dummy_id) REFERENCES dummy(id)
+            );
+        `,
+		},
+		{
+			Version: 5,
+			Name:    "insert row into dummy2",
+			SQL: `
+            INSERT INTO dummy2 (dummy_id) VALUES (1);
+        `,
+		},
+	}
+
+	appName := "sad_test"
+	db, err := sad.OpenDBConnection(sad.DBConnectionOptions{
+		AppName:           appName,
+		EnableForeignKeys: true,
+	}, testMigrations)
+	if err != nil {
+		t.Fatal("Expected nil but got error", err.Error())
+	}
+	defer db.Close()
+	var latestVersion sql.NullInt64
+	err = db.QueryRow("select MAX(version) from schema_versions").Scan(&latestVersion)
+	if err != nil {
+		t.Fatal("Expected nil but got error", err.Error())
+	}
+	if latestVersion.Valid {
+		if latestVersion.Int64 != 5 {
+			t.Log("Expected latestVersion to be 5 but got", latestVersion.Int64)
+		}
+	} else {
+		t.Fatal("Failed to run migrations")
+	}
+}
+
 func Cleanup(t *testing.T) {
 	if err := os.Remove(sad.GetDatabaseFilePath("sad_test")); err != nil {
 		t.Fatal("Cleanup Failed:", err.Error())
