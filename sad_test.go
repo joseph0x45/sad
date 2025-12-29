@@ -17,18 +17,17 @@ func TestCreateDatabaseNoAppName(t *testing.T) {
 }
 
 func TestCreateDatabaseWithAppName(t *testing.T) {
-	appName := "sad_test"
+	databasePath := "test.db"
 	db, err := sad.OpenDBConnection(sad.DBConnectionOptions{
-		AppName: appName,
+		DatabasePath: databasePath,
 	}, nil)
 	if err != nil {
 		t.Fatal("Expected nil but got error", err.Error())
 	}
 	defer db.Close()
-	dbPath := sad.GetDatabaseFilePath(appName)
-	if _, err := os.Stat(dbPath); err != nil {
+	if _, err := os.Stat(databasePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			t.Fatalf("Expected file %s to exist but doesn't", dbPath)
+			t.Fatalf("Expected file %s to exist but doesn't", databasePath)
 		}
 	}
 	//prepare next test
@@ -39,10 +38,10 @@ func TestCreateDatabaseWithAppName(t *testing.T) {
 }
 
 func TestCreateDatabaseReset(t *testing.T) {
-	appName := "sad_test"
+	databasePath := "test.db"
 	db, err := sad.OpenDBConnection(sad.DBConnectionOptions{
-		AppName: appName,
-		Reset:   true,
+		DatabasePath: databasePath,
+		Reset:        true,
 	}, nil)
 	if err != nil {
 		t.Fatal("Expected nil but got error", err.Error())
@@ -60,9 +59,9 @@ func TestCreateDatabaseReset(t *testing.T) {
 }
 
 func TestCreateDatabaseForeignKeysEnabled(t *testing.T) {
-	appName := "sad_test"
+	databasePath := "test.db"
 	db, err := sad.OpenDBConnection(sad.DBConnectionOptions{
-		AppName:           appName,
+		DatabasePath:      databasePath,
 		Reset:             true,
 		EnableForeignKeys: true,
 	}, nil)
@@ -126,9 +125,9 @@ func TestMigrations(t *testing.T) {
 		},
 	}
 
-	appName := "sad_test"
+	databasePath := "test.db"
 	db, err := sad.OpenDBConnection(sad.DBConnectionOptions{
-		AppName:           appName,
+		DatabasePath:      databasePath,
 		EnableForeignKeys: true,
 	}, testMigrations)
 	if err != nil {
@@ -150,7 +149,7 @@ func TestMigrations(t *testing.T) {
 }
 
 func Cleanup(t *testing.T) {
-	if err := os.Remove(sad.GetDatabaseFilePath("sad_test")); err != nil {
+	if err := os.Remove("test.db"); err != nil {
 		t.Fatal("Cleanup Failed:", err.Error())
 	}
 }

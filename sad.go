@@ -4,35 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-func getDataDir(appName string) string {
-	return filepath.Join(
-		os.Getenv("HOME"),
-		".local",
-		"share",
-		appName,
-	)
-}
-
-func GetDatabaseFilePath(appName string) string {
-	return filepath.Join(
-		getDataDir(appName),
-		fmt.Sprintf("%s.db", appName),
-	)
-}
-
-func ensureDataDir(appName string) error {
-	_, err := os.Stat(getDataDir(appName))
-	if errors.Is(err, os.ErrNotExist) {
-		return os.Mkdir(getDataDir(appName), 0755)
-	}
-	return nil
-}
 
 type Migration struct {
 	Version int
@@ -43,7 +18,7 @@ type Migration struct {
 type DBConnectionOptions struct {
 	Reset             bool
 	EnableForeignKeys bool
-	AppName           string
+	DatabasePath      string
 }
 
 func applyMigration(db *sqlx.DB, migration *Migration) error {
@@ -120,19 +95,16 @@ func ensureSchemaVersions(db *sqlx.DB) error {
 }
 
 func OpenDBConnection(opts DBConnectionOptions, migrations []Migration) (*sqlx.DB, error) {
-	if opts.AppName == "" {
-		return nil, errors.New("AppName can not be an empty string")
+	if opts.DatabasePath == "" {
+		return nil, errors.New("DatabasePath can not be an empty string")
 	}
 	if opts.Reset {
-		err := os.Remove(GetDatabaseFilePath(opts.AppName))
+		err := os.Remove(opts.DatabasePath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to reset database: %w", err)
 		}
 	}
-	if err := ensureDataDir(opts.AppName); err != nil {
-		return nil, fmt.Errorf("Setup failed: %w", err)
-	}
-	db, err := sqlx.Connect("sqlite3", GetDatabaseFilePath(opts.AppName))
+	db, err := sqlx.Connect("sqlite3", opts.DatabasePath)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to database: %w", err)
 	}
