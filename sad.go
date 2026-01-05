@@ -26,7 +26,7 @@ func applyMigration(db *sqlx.DB, migration *Migration) error {
 	if err != nil {
 		return fmt.Errorf("Failed to start transaction: %w", err)
 	}
-	_, err = db.Exec(migration.SQL)
+	_, err = tx.Exec(migration.SQL)
 	if err != nil {
 		rollbackErr := tx.Rollback()
 		if rollbackErr != nil {
@@ -35,7 +35,7 @@ func applyMigration(db *sqlx.DB, migration *Migration) error {
 		return err
 	}
 	//insert corresponding versions
-	_, err = db.Exec(
+	_, err = tx.Exec(
 		`
       insert into schema_versions(
         version
@@ -74,7 +74,7 @@ func runMigrations(db *sqlx.DB, migrations []Migration) error {
 		if !appliedMigrations[migration.Version] {
 			err := applyMigration(db, &migration)
 			if err != nil {
-				return fmt.Errorf("Failed to run migration %d: %w", migration.Version, err)
+				return fmt.Errorf("Failed to run migration %d-%s: %w", migration.Version, migration.Name, err)
 			}
 		}
 	}
