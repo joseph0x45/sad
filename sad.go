@@ -34,7 +34,6 @@ func applyMigration(db *sqlx.DB, migration *Migration) error {
 		}
 		return err
 	}
-	//insert corresponding versions
 	_, err = tx.Exec(
 		`
       insert into schema_versions(
