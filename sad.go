@@ -19,6 +19,7 @@ type DBConnectionOptions struct {
 	Reset             bool
 	EnableForeignKeys bool
 	DatabasePath      string
+	EnableWAL         bool
 }
 
 func applyMigration(db *sqlx.DB, migration *Migration) error {
@@ -115,6 +116,14 @@ func OpenDBConnection(opts DBConnectionOptions, migrations []Migration) (*sqlx.D
 			return nil, fmt.Errorf("Failed to enable Foreign Keys: %w", err)
 		}
 	}
+  if opts.EnableWAL{
+		const query = "PRAGMA journal_mode=WAL"
+		_, err := db.Exec(query)
+		if err != nil {
+			db.Close()
+			return nil, fmt.Errorf("Failed to enable WAL mode: %w", err)
+		}
+  }
 	if err := ensureSchemaVersions(db); err != nil {
 		return nil, fmt.Errorf("EnsureSchemaVersion failde: %w", err)
 	}
